@@ -10,3 +10,10 @@ Root (/):
   - Test2.txt
 
 The program will create a new FAT16 table in memory based on this structure and redirect calls to the assigned logical blocks to the relevant LittleFS file.
+Visible to the computer will be a read-only drive containing:
+Root (/):
+  - Test.txt
+  - Test2.txt
+
+This currently only works with Linux implementations of the FAT16 filesystem driver.
+ToDo: Windows / MacOS debugging.
