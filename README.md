@@ -17,3 +17,6 @@ Root (/):
 
 This currently only works with Linux implementations of the FAT16 filesystem driver.
 ToDo: Windows / MacOS debugging.
+
+Tested on a Raspberry Pi Pico using the Arduino Core:
+https://github.com/earlephilhower/arduino-pico
