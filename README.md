@@ -16,6 +16,8 @@ Root (/):
   - Test2.txt
 
 This currently only works with Linux implementations of the FAT16 filesystem driver.
+I suspect this is due to the lack of VFAT support.
+
 ToDo: Windows / MacOS debugging.
 
 Tested on a Raspberry Pi Pico using the Arduino Core:
