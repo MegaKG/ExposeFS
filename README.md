@@ -1,2 +1,12 @@
 # ExposeFS
-Exposes LittleFS as a virtual FAT disk.
+Exposes LittleFS as a virtual FAT16 disk.
+
+
+This library allows the internal LittleFS of a microcontroller to be exposed for read only access via USB mass storage.
+
+Assuming the LittleFS filesystem is Constructed as Follows:
+Root (/):
+  - Test.txt
+  - Test2.txt
+
+The program will create a new FAT16 table in memory based on this structure and redirect calls to the assigned logical blocks to the relevant LittleFS file.
