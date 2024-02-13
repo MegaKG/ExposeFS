@@ -15,10 +15,10 @@ Root (/):
   - Test.txt
   - Test2.txt
 
-This currently only works with Linux implementations of the FAT16 filesystem driver.
-I suspect this is due to the lack of VFAT support.
+This currently only works with MacOS Linux implementations of the FAT16 filesystem driver.
+Windows presents a "File not Found" error.
 
-ToDo: Windows / MacOS debugging.
+ToDo: Windows debugging.
 
 Tested on a Raspberry Pi Pico using the Arduino Core:
 https://github.com/earlephilhower/arduino-pico
