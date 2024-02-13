@@ -149,23 +149,23 @@ uint32_t insertFileEntry(char* Name, char* Extension, uint32_t ContentLength, ch
     
 
     int byteIndex;
-    int startIndex;
+    int startBlock;
     for (byteIndex = 6; byteIndex < FAT_End-FAT_Start; byteIndex += 2){
         _cpyTo(buffer,uint16Conversion.buffer,2,byteIndex+FAT_Start,0);
         //printf("Check Cluster %i (really %i) got %i from %x %x of %x %x\n",byteIndex,byteIndex+FAT_Start,uint16Conversion.Integer,uint16Conversion.buffer[0],uint16Conversion.buffer[1], buffer[byteIndex+FAT_Start], buffer[byteIndex+FAT_Start+1]);
 
         if (uint16Conversion.Integer == 0){
-            startIndex = byteIndex/2;
+            startBlock = byteIndex/2;
             break;
         }
     }
-    //printf("Found Start Index %i\n",startIndex);
+    //printf("Found Start Index %i\n",startBlock);
 
 
     uint32_t lengthCounter = ContentLength;
-    int indexCounter = startIndex;
+    int indexCounter = startBlock + 0;
     while (lengthCounter > DefaultSectorSize){
-      uint16Conversion.Integer = startIndex + 1;
+      uint16Conversion.Integer = indexCounter + 1;
       _cpyTo(uint16Conversion.buffer,buffer,2,0,(indexCounter*2)+FAT_Start);
       indexCounter += 1;
       lengthCounter -= DefaultSectorSize;
@@ -178,59 +178,68 @@ uint32_t insertFileEntry(char* Name, char* Extension, uint32_t ContentLength, ch
     
     //Now the entry in the root dir
     char stringBuffer[8];
+
+    //Locate a free root entry
+    int entryBlock = 0;
+    for (indexCounter = 0; indexCounter < DefaultMaxRootEntries; indexCounter++){
+      if (buffer[ROOT_Start + (indexCounter*32)] == '\x00'){
+        entryBlock = indexCounter;
+        break;
+      }
+    }
     
     //The File Name
     memset(stringBuffer, ' ', 8);
     _cpyTo(Name,stringBuffer,strlen(Name),0,0);
-    _cpyTo(stringBuffer, buffer, 8, 0, ROOT_Start + (32*startIndex) + 0);
-    //printf("Saved Name at %i\n",ROOT_Start + (32*startIndex) + 0);
+    _cpyTo(stringBuffer, buffer, 8, 0, ROOT_Start + (32*entryBlock) + 0);
+    //printf("Saved Name at %i\n",ROOT_Start + (32*entryBlock) + 0);
 
     //The Extension
      memset(stringBuffer, ' ', 3);
     _cpyTo(Extension,stringBuffer,strlen(Extension),0,0);
-    _cpyTo(stringBuffer, buffer, 3, 0, ROOT_Start + (32*startIndex) + 8);
-    //printf("Saved Extension at %i\n",ROOT_Start + (32*startIndex) + 8);
+    _cpyTo(stringBuffer, buffer, 3, 0, ROOT_Start + (32*entryBlock) + 8);
+    //printf("Saved Extension at %i\n",ROOT_Start + (32*entryBlock) + 8);
 
     //The attribute byte
     uint8Conversion.Integer = AttributeIsFile;
-    _cpyTo(uint8Conversion.buffer, buffer, 1, 0, ROOT_Start + (32*startIndex) + 11);
+    _cpyTo(uint8Conversion.buffer, buffer, 1, 0, ROOT_Start + (32*entryBlock) + 11);
     //printf("Saved Attribute\n");
 
     //Created Time
     uint16Conversion.Integer = ArbitraryTime;
-    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*startIndex) + 14);
+    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*entryBlock) + 14);
 
     //Created Date
     uint16Conversion.Integer = ArbitraryDate;
-    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*startIndex) + 16);
+    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*entryBlock) + 16);
 
     //Last Accessed Date
     uint16Conversion.Integer = ArbitraryDate;
-    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*startIndex) + 18);
+    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*entryBlock) + 18);
 
     //Written Time
     uint16Conversion.Integer = ArbitraryTime;
-    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*startIndex) + 22);
+    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*entryBlock) + 22);
 
     //Written Date
     uint16Conversion.Integer = ArbitraryDate;
-    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*startIndex) + 24);
+    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*entryBlock) + 24);
 
     //First Logical Sector
-    uint16Conversion.Integer = startIndex;
-    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*startIndex) + 26);
+    uint16Conversion.Integer = startBlock;
+    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*entryBlock) + 26);
     //printf("Saved Start Index\n");
 
     //File Size
     uint32Conversion.Integer = ContentLength;
-    _cpyTo(uint32Conversion.buffer,buffer,2,0,ROOT_Start + (32*startIndex) + 28);
+    _cpyTo(uint32Conversion.buffer,buffer,2,0,ROOT_Start + (32*entryBlock) + 28);
     //printf("Saved Length\n");
 
 
 
     //Now write the data at the specified cluster
-    //_cpyTo(Content, buffer, ContentLength, 0, DATA_Start + (startIndex*DefaultSectorSize));
-    return DATA_Start + (startIndex*DefaultSectorSize);
+    //_cpyTo(Content, buffer, ContentLength, 0, DATA_Start + (startBlock*DefaultSectorSize));
+    return DATA_Start + (startBlock*DefaultSectorSize);
 }
 
 
@@ -247,7 +256,7 @@ void addVolumeLabelToTable(char* label, char* buffer){
     int FAT_End = FAT_Start + (DefaultSectorsPerFat*DefaultSectorSize);
     //printf("Fat Starts %i ends %i\n",FAT_Start,FAT_End);
     
-    int startIndex = 2;
+    int startBlock = 2;
 
 
     //Now the entry in the root dir
@@ -256,19 +265,19 @@ void addVolumeLabelToTable(char* label, char* buffer){
     //The root label
     memset(stringBuffer, ' ', 11);
     _cpyTo(label,stringBuffer,strlen(label),0,0);
-    _cpyTo(stringBuffer, buffer, 11, 0, ROOT_Start + (32*startIndex) + 0);
-    //printf("Saved Name at %i\n",ROOT_Start + (32*startIndex) + 0);
+    _cpyTo(stringBuffer, buffer, 11, 0, ROOT_Start + (32*startBlock) + 0);
+    //printf("Saved Name at %i\n",ROOT_Start + (32*startBlock) + 0);
 
     //The File type
-    buffer[ROOT_Start + (32*startIndex) + 11] = AttributeIsVolName;
+    buffer[ROOT_Start + (32*startBlock) + 11] = AttributeIsVolName;
 
      //Written Time
     uint16Conversion.Integer = ArbitraryTime;
-    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*startIndex) + 22);
+    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*startBlock) + 22);
 
     //Written Date
     uint16Conversion.Integer = ArbitraryDate;
-    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*startIndex) + 24);
+    _cpyTo(uint16Conversion.buffer,buffer,2,0,ROOT_Start + (32*startBlock) + 24);
     
 
 }
